@@ -94,6 +94,7 @@ def create_balanced_cxcr4_dataset(df, id_col='Smiles', val_col='Standard Value',
     """
 
     df = df.copy()
+    df["Original Smiles"] = df["Smiles"]
 
     # Sanitize the Relation column
     df[rel_col] = df[rel_col].astype(str).str.replace("'", "").str.replace('"', "").str.strip()
@@ -203,3 +204,43 @@ def create_balanced_cxcr4_dataset(df, id_col='Smiles', val_col='Standard Value',
     print("-" * 40)
 
     return final_df
+
+
+
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Lipinski, Fragments
+
+
+def extract_descriptors(df, smiles_col='Smiles'):
+    """
+    Extracts descriptors from SMILES strings: MW, LogP, HBD, HBA, TPSA, Num_Aromatic_Rings, Num_Nitrogen_Atoms, Num_Amide_Bonds.
+
+    :return: dataframe (pd.DataFrame) and list of descriptor column names (List[str])
+    """
+
+    # Convert SMILES to RDKit molecules
+    df['Mol'] = df[smiles_col].apply(lambda x: Chem.MolFromSmiles(x) if x else None)
+
+    # 1. Physicochemical Properties (General Drug-likeness)
+    df['MW'] = df['Mol'].apply(lambda x: Descriptors.MolWt(x) if x else None)
+    df['LogP'] = df['Mol'].apply(lambda x: Descriptors.MolLogP(x) if x else None)
+    df['HBD'] = df['Mol'].apply(lambda x: Lipinski.NumHDonors(x) if x else None)
+    df['HBA'] = df['Mol'].apply(lambda x: Lipinski.NumHAcceptors(x) if x else None)
+    df['TPSA'] = df['Mol'].apply(lambda x: Descriptors.TPSA(x) if x else None)
+
+    # 2. Oncology-Specific Structural Features
+    # Aromatic rings are frequent in kinase inhibitors (e.g., CXCR4 antagonists)
+    df['Num_Aromatic_Rings'] = df['Mol'].apply(lambda x: Lipinski.NumAromaticRings(x) if x else None)
+
+    # Nitrogen-rich heterocycles (common in CXCR4 ligands like cyclams or pyridines)
+    df['Num_Nitrogen_Atoms'] = df['Mol'].apply(
+        lambda x: x.GetSubstructMatches(Chem.MolFromSmarts("[#7]")).__len__() if x else 0)
+
+    # Amide bonds (common in peptidomimetic oncology drugs)
+    df['Num_Amide_Bonds'] = df['Mol'].apply(lambda x: Fragments.fr_amide(x) if x else None)
+
+    # Drop the temporary Mol column
+    return df.drop(columns=['Mol']), ['MW', 'LogP', 'HBD', 'HBA', 'TPSA', 'Num_Aromatic_Rings', 'Num_Nitrogen_Atoms', 'Num_Amide_Bonds']
+
+# Usage:
+# df, descriptors_names = extract_descriptors(df)
