@@ -17,7 +17,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, roc_curve, auc
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, permutation_test_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
@@ -255,3 +255,88 @@ def plot_feature_importance(model, feature_names, top_k: int = 10):
     ax.set_title(f"Top {top_k} Feature Importances")
     plt.tight_layout()
     plt.show()
+
+
+def permutation_test(
+    model,
+    X,
+    y,
+    n_permutations: int = 500,
+    cv: int = 5,
+    scoring: str = "accuracy",
+    model_name: str = None,
+    random_state: int = 42,
+) -> tuple:
+    """
+    Permutation test: checks whether the model performs significantly better than chance.
+
+    The model is re-trained (cloned) n_permutations times on randomly shuffled labels.
+    The p-value is the fraction of permuted scores that are >= the true CV score.
+
+    Prints a text report and shows a histogram of permuted scores with the true score marked.
+
+    :param model:          Fitted model returned by train_RF / train_KNN / etc.
+                           It is cloned internally, so the original object is untouched.
+    :param X:              Feature matrix (use train_X).
+    :param y:              True labels (use train_y).
+    :param n_permutations: Number of label permutations (default 500; use 1000 for publication).
+    :param cv:             Number of cross-validation folds used for scoring (default 5).
+    :param scoring:        Sklearn scoring metric (default 'accuracy').
+    :param model_name:     Display name for the report title. Inferred from class name if None.
+    :param random_state:   Random seed for reproducibility.
+    :return:               (true_score, permuted_scores, p_value)
+    """
+    if model_name is None:
+        # Unwrap Pipeline to get the final estimator's name
+        est = model[-1] if isinstance(model, Pipeline) else model
+        model_name = type(est).__name__
+
+    true_score, perm_scores, p_value = permutation_test_score(
+        model, X, y,
+        n_permutations=n_permutations,
+        cv=cv,
+        scoring=scoring,
+        random_state=random_state,
+        n_jobs=-1,
+    )
+
+    # Significance label
+    if p_value < 0.001:
+        sig_label = "*** (p < 0.001)"
+    elif p_value < 0.01:
+        sig_label = "** (p < 0.01)"
+    elif p_value < 0.05:
+        sig_label = "* (p < 0.05)"
+    else:
+        sig_label = "n.s. (p ≥ 0.05)"
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.hist(perm_scores, bins=30, color="#5b8db8", edgecolor="white", alpha=0.85,
+            label=f"Permuted scores (n={n_permutations})")
+    ax.axvline(true_score, color="#e74c3c", linewidth=2.5,
+               label=f"True CV {scoring} = {true_score:.3f}")
+    ax.axvline(np.mean(perm_scores), color="grey", linewidth=1.2, linestyle="--",
+               label=f"Mean permuted = {np.mean(perm_scores):.3f}")
+    ax.set_xlabel(scoring.capitalize())
+    ax.set_ylabel("Count")
+    ax.set_title(f"Permutation Test — {model_name}\np = {p_value:.4f}  {sig_label}")
+    ax.legend(fontsize=9)
+    plt.tight_layout()
+    plt.show()
+
+    # Text report
+    interpretation = (
+        "Model IS significantly better than chance."
+        if p_value < 0.05
+        else "Model is NOT significantly better than chance."
+    )
+    print(f"Permutation Test — {model_name}")
+    print("-" * 45)
+    print(f"  True CV {scoring:<12}: {true_score:.4f}")
+    print(f"  Mean permuted     : {np.mean(perm_scores):.4f}")
+    print(f"  Std  permuted     : {np.std(perm_scores):.4f}")
+    print(f"  p-value           : {p_value:.4f}  {sig_label}")
+    print(f"  → {interpretation}")
+
+    return true_score, perm_scores, p_value

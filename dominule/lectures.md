@@ -554,3 +554,65 @@ Efficiency = how specific the predictions are
 Conformal prediction - model agnostic :) - thats good
 
 
+# Last Lecture
+
+## Explainable AI (EX-AI)
+* != how NN or RF works in general
+* = how the trianed model works in a comprehensible way
+  * why was the sample classified as active?
+  * which features are important for the prediction?
+  * how this feature affects the prediction - in which way (does the residue take part in binding or sth else?)
+
+* explainability != interpretability
+* interpretability = we can interpret what the model does (for a small model, e.g., small decision tree)
+* explainability - we deal with model that we can not understand this way
+* explainability = someone has to explain the model's inner working for us (e.g., NN)
+
+
+* tasks:
+  * understanding the model (diagnostics and trust for the model)
+  * understanding the modelled process (scientific discovery, molecule optimization)
+
+
+* examples:
+  * AND operation - A=1, B=0 --> 0 (depends only on B value)
+  * linear reggression - y = a*X + b (depends on a*X)
+
+### SHAP
+- popular method
+- Shapley values - from game theory ---> X SHAP values
+
+Shapley values:
+
+* Fairness properties: efficiency, symmetry, dummy (no impact --> gets no reward), additivity
+   * additivity = no matter if you divide the reward after first game or aafter all games, the result whould be same
+
+game:
+player ---> reward
+
+model:
+features ---> output
+
+* Shapley value = sum of coalitions[ (S with J) - (S without j) ]
+
+  * ...coalition = S
+
+* Shapley value = average contribution (of a feature value to the prediction) in different coalitions
+* Shapley value != the difference in prediction if we remove the feature from the model
+
+
+SHAP values:
+
+= SHAPley values of a conditional expectation function of the original model
+
+SHAP = feature attribution method
+* also SHAP = additive = if we sum all SHAP values, we get the final prediction
+* both for classification and regression
+* model-agnostic (works for any model)
+* local explanation method (for a single prediction)
+* interpretability - "global" explanation method (for the whole model) - we can average SHAP values for all - still not a precise global but used that way
+* suitable for tabular data
+* mathematical guarantee (from Shapley values)
+* slow (especially for svm) <--- you need to sample from the training data distribution for those features that are not in current coalition
+* limitation: prone to unrealistic data instances
+* features should be independent
