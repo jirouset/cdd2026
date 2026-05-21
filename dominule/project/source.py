@@ -49,7 +49,7 @@ def convert_ugml_to_nm(df, ugml_col, mw_col):
 # df = convert_ugml_to_nm(filtered, 'Standard Value', 'MW_column_name')
 
 
-def draw_scaffold_comparison(df, row_id):
+def draw_scaffold_comparison(df, row_id, smiles_col="Smiles"):
     """
     Draws the original molecule, its Murcko scaffold, and its generic scaffold.
     """
@@ -57,7 +57,7 @@ def draw_scaffold_comparison(df, row_id):
 
     # Get SMILES strings
     smiles_list = [
-        row['Smiles'],
+        row[smiles_col],
         row['Scaffold'],
         row['Generic Scaffold']
     ]

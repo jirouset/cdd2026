@@ -70,15 +70,16 @@ def draw_scaffolds(df, scaff_col):
     return
 
 
-def compute_tsne_from_fingerprints(df, n_components=2, perplexity=30):
+def compute_tsne_from_fingerprints(df, n_components=2, perplexity=30, metric='jaccard'):
     """
     Counts t-SNE coords for fingerprints using Jaccardo (Tanimoto) distance.
     """
-    X = df.values.astype(np.float32)
+    df_dropped = df.drop(columns=['Inhibitor'])
+    X = df_dropped.values.astype(np.float32)
     
     tsne = TSNE(
         n_components=n_components, 
-        metric='jaccard', 
+        metric=metric,
         perplexity=perplexity
     )
     
@@ -97,7 +98,8 @@ def compute_pca_from_fingerprints(df, n_components=2):
     """
     Counts PCA coordinates.
     """
-    X = df.values.astype(np.float32)
+    df_dropped = df.drop(columns=['Inhibitor'])
+    X = df_dropped.values.astype(np.float32)
     
     pca = PCA(n_components=n_components)
     pca_results = pca.fit_transform(X)
@@ -112,7 +114,7 @@ def compute_pca_from_fingerprints(df, n_components=2):
     return df_pca
 
 
-def draw_clusters(df, method='pca', target_col='Inhibitor', n_components=2, perplexity=30, colors=['#440154', '#fde725']):
+def draw_clusters(df, method='pca', target_col='Inhibitor', n_components=2, perplexity=30, colors=['#440154', '#fde725'], metric='jaccard'):
     """
     Counts PCA or TSNE from data a draw results.
     """
@@ -123,7 +125,7 @@ def draw_clusters(df, method='pca', target_col='Inhibitor', n_components=2, perp
         y='PC_2'
         
     else:
-        df_result = compute_tsne_from_fingerprints(df, n_components=n_components, perplexity=perplexity)
+        df_result = compute_tsne_from_fingerprints(df, n_components=n_components, perplexity=perplexity, metric=metric)
         title='TSNE'
         x='tSNE_1'
         y='tSNE_2'
