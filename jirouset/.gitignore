@@ -1,0 +1,8 @@
+# data, contains: Papyrus cache, processed files, Enamine HLL-460
+data/
+
+# old, contains drafts, notes, extra material
+old/
+
+# Jupyter
+.ipynb_checkpoints/
