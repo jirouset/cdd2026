@@ -1,0 +1,24 @@
+name: pnl
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - rdkit
+  - pandas
+  - numpy
+  - matplotlib
+  - seaborn
+  - pyarrow
+  - scikit-learn
+  - xgboost
+  - optuna
+  - mapie
+  - opentsne
+  - pynndescent
+  - jupyterlab
+  - jupytext
+  - ipykernel
+  - pip
+  - pip:
+      - papyrus-scripts
+      - chembl_webresource_client
